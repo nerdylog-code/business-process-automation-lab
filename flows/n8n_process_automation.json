@@ -1,52 +1,67 @@
 {
-  "name": "Conferência documental — validação automática (process automation lab)",
+  "name": "Validação de documentos — conferência automatizada com fila de exceções",
   "nodes": [
     {
       "parameters": {
-        "path": "conferencia-documental",
         "httpMethod": "POST",
+        "path": "validar-documento",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "b0f1a2c3-0001-4000-8000-000000000001",
+      "id": "webhook-1",
       "name": "Webhook (documento recebido)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        200,
+        -460,
         300
-      ]
+      ],
+      "webhookId": "validar-documento"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://automation-api:8080/automate/validate",
+        "url": "http://localhost:8080/automate/validate",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.body) }}",
         "options": {
-          "timeout": 15000
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
         }
       },
-      "id": "b0f1a2c3-0002-4000-8000-000000000002",
+      "id": "http-validacao",
       "name": "API — validar por regras",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        440,
+        -200,
         300
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true,
+      "notes": "Retry 3x com 2s; resposta de erro vai para a saída 2 (DLQ), nunca silenciosa."
     },
     {
       "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
-            "version": 2
+            "leftValue": "",
+            "typeValidation": "loose"
           },
+          "combinator": "and",
           "conditions": [
             {
-              "id": "cond-1",
+              "id": "cond-revisao",
               "leftValue": "={{ $json.needs_human_review }}",
               "rightValue": true,
               "operator": {
@@ -55,17 +70,16 @@
                 "singleValue": true
               }
             }
-          ],
-          "combinator": "and"
+          ]
         },
         "options": {}
       },
-      "id": "b0f1a2c3-0003-4000-8000-000000000003",
+      "id": "if-revisao",
       "name": "Precisa de conferência humana?",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "typeVersion": 2.2,
       "position": [
-        680,
+        60,
         300
       ]
     },
@@ -74,34 +88,65 @@
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "PLANILHA_CONFERENCIA",
+          "value": "FILA_EXCECOES_ID",
           "mode": "id"
         },
         "sheetName": {
           "__rl": true,
-          "value": "Divergencias",
+          "value": "Exceções",
           "mode": "name"
         },
         "columns": {
-          "mappingMode": "autoMapInputData",
-          "value": {}
+          "mappingMode": "defineBelow",
+          "value": {
+            "document_number": "={{ $json.document_number }}",
+            "motivo": "={{ ($json.divergences || []).map(d => d.rule).join(', ') }}",
+            "recebido_em": "={{ $now.toISO() }}",
+            "remetente": "={{ $json.received_from || 'sistema_origem' }}"
+          }
         }
       },
-      "id": "b0f1a2c3-0004-4000-8000-000000000004",
+      "id": "excel-excecoes",
       "name": "Excel/Sheets — fila de exceções",
       "type": "n8n-nodes-base.microsoftExcel",
-      "typeVersion": 2,
+      "typeVersion": 2.1,
       "position": [
-        940,
+        320,
         180
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.webhook.office.com/webhookb2/FILA-EXCECOES (configurar no ambiente)",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"text\": \"⚠️ Documento {{ $json.document_number }} precisa de conferência humana\"}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "teams-excecao",
+      "name": "Teams — avisar analista",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        180
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "onError": "continueRegularOutput",
+      "notes": "Falha no aviso não pode travar a fila — o registro no Excel já aconteceu."
     },
     {
       "parameters": {
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "PLANILHA_CONFERENCIA",
+          "value": "APROVADOS_ID",
           "mode": "id"
         },
         "sheetName": {
@@ -110,32 +155,179 @@
           "mode": "name"
         },
         "columns": {
-          "mappingMode": "autoMapInputData",
-          "value": {}
+          "mappingMode": "defineBelow",
+          "value": {
+            "document_number": "={{ $json.document_number }}",
+            "amount": "={{ $json.amount }}",
+            "aprovado_em": "={{ $now.toISO() }}"
+          }
         }
       },
-      "id": "b0f1a2c3-0005-4000-8000-000000000005",
+      "id": "excel-aprovados",
       "name": "Excel/Sheets — aprovados automáticos",
       "type": "n8n-nodes-base.microsoftExcel",
-      "typeVersion": 2,
+      "typeVersion": 2.1,
       "position": [
-        940,
+        320,
+        420
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "status",
+              "value": "erro_integracao",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "document_number",
+              "value": "={{ $json.document_number || 'desconhecido' }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "erro",
+              "value": "={{ $json.error || $json.message || 'falha na validação' }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "ocorrido_em",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "request_id",
+              "value": "={{ $json.request_id || $execution.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "registrar-erro",
+      "name": "Registrar erro (DLQ)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        60,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "DLQ_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Erros",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "={{ $json.status }}",
+            "document_number": "={{ $json.document_number }}",
+            "erro": "={{ $json.erro }}",
+            "occurred_at": "={{ $json.ocorrido_em }}",
+            "request_id": "={{ $json.request_id }}"
+          }
+        }
+      },
+      "id": "excel-dlq",
+      "name": "Excel/Sheets — log de erros",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.1,
+      "position": [
+        320,
+        560
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.webhook.office.com/webhookb2/ALERTA-ERRO (configurar no ambiente)",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"text\": \"🚨 Falha ao validar documento {{ $json.document_number }} — request {{ $json.request_id }}\"}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "teams-erro",
+      "name": "Teams — alerta de erro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        560
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"revisao_humana\", \"document_number\": \"{{ $json.document_number }}\", \"motivos\": {{ JSON.stringify(($json.divergences || []).map(d => d.rule)) }}}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "respond-excecao",
+      "name": "Responder — em revisão",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"aprovado_automaticamente\", \"document_number\": \"{{ $json.document_number }}\"}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok",
+      "name": "Responder — aprovado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        560,
         420
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ status: $json.status, divergences: $json.divergences }) }}",
-        "options": {}
+        "responseBody": "={\"status\": \"erro\", \"mensagem\": \"falha ao validar documento\", \"request_id\": \"{{ $json.request_id }}\"}",
+        "options": {
+          "responseCode": 502
+        }
       },
-      "id": "b0f1a2c3-0006-4000-8000-000000000006",
-      "name": "Responder ao sistema de origem",
+      "id": "respond-erro",
+      "name": "Responder erro 502",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1200,
-        300
+        800,
+        560
       ]
     }
   ],
@@ -156,6 +348,13 @@
         [
           {
             "node": "Precisa de conferência humana?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar erro (DLQ)",
             "type": "main",
             "index": 0
           }
@@ -184,7 +383,18 @@
       "main": [
         [
           {
-            "node": "Responder ao sistema de origem",
+            "node": "Teams — avisar analista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teams — avisar analista": {
+      "main": [
+        [
+          {
+            "node": "Responder — em revisão",
             "type": "main",
             "index": 0
           }
@@ -195,7 +405,40 @@
       "main": [
         [
           {
-            "node": "Responder ao sistema de origem",
+            "node": "Responder — aprovado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar erro (DLQ)": {
+      "main": [
+        [
+          {
+            "node": "Excel/Sheets — log de erros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Excel/Sheets — log de erros": {
+      "main": [
+        [
+          {
+            "node": "Teams — alerta de erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teams — alerta de erro": {
+      "main": [
+        [
+          {
+            "node": "Responder erro 502",
             "type": "main",
             "index": 0
           }
@@ -205,10 +448,14 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "saveManualExecutions": true
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none",
+    "errorWorkflow": "WF_ALERTA_GLOBAL (opcional: fluxo de alerta global do n8n)"
   },
   "pinData": {},
   "meta": {
-    "instanceId": "process-automation-lab"
+    "instanceId": "process-automation-lab",
+    "templateCredsSetupCompleted": false,
+    "description": "Contrato: entrada POST /validar-documento com o payload aceito por src/rules.py; a validação é feita pela API deste repo (POST /automate/validate, subida com `make api`). Saída 200 aprovado automático, 202 fila de exceções, 502 falha de integração com registro em DLQ e alerta. Credenciais e IDs de planilha são preenchidos no ambiente do n8n — nada de segredo no repositório."
   }
 }

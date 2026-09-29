@@ -1,68 +1,80 @@
 # Business Process Automation Lab
 
-Laboratório **reprodutível** de automação de processos de negócio: parte de um log de eventos
-sintético de um processo administrativo/fiscal, descobre o processo **AS-IS**, propõe o **TO-BE**
-com automação, mede o impacto em simulação auditável e entrega os artefatos que uma área de
-operações realmente usa — **BPMN 2.0**, requisitos documentados, KPIs, API de automação e fluxos
-low-code (n8n importável + receita Power Automate).
+Laboratório reprodutível de automação de um processo administrativo/fiscal: parte de um log de eventos
+sintético, **descobre** o processo AS-IS (directly-follows graph), propõe o TO-BE com automação,
+**mede** o impacto com parâmetros tirados dos próprios artefatos e entrega o que uma área de operações usa:
+BPMN 2.0, requisitos, API, fluxos low-code e relatório executivo.
 
-> Todos os dados são **sintéticos e determinísticos** (seed fixa). Nenhum dado de empresa, cliente
-> ou documento real. Os números de impacto são **simulações** calculadas a partir do log sintético,
-> com a fórmula exposta — não são resultados de operação corporativa.
+> Dados **sintéticos e determinísticos** (seed 42). Nenhuma empresa, cliente ou documento real.
+> Os números de impacto são **simulação** sobre esse log, com residual **medido** — não são resultado corporativo.
 
-## Problema
+## Resultado da última execução (220 casos)
 
-Processos de conferência documental (fiscal/contábil/backoffice) costumam ter:
-- etapas manuais repetitivas de leitura/conferência;
-- retrabalho por divergência encontrada tarde;
-- fila em uma etapa específica (gargalo);
-- nenhuma medição de lead time, então melhoria vira opinião.
+| Métrica | Valor | De onde sai |
+|---|---|---|
+| Lead time P50 / P90 | 2,39 h / 3,90 h | `reports/mining.json` |
+| Casos com retrabalho | 33% | idem |
+| Gargalo (maior espera média) | `conferencia_manual` | idem |
+| Variantes do processo | 2 | idem |
+| Fitness do modelo descoberto | 100% (trace 100%) | `reports/mining.json` → `conformance` |
+| Residual de revisão humana | 32,7% | regras aplicadas a `data/documents.csv` |
+| Ganho simulado | 202 h/mês (faixa 185–219 h) | `reports/impact.json` |
 
-## O que este repositório entrega
+## O que tem aqui
 
 | Artefato | Arquivo | Para que serve |
 |---|---|---|
-| Log de eventos sintético | `data/event_log.csv` | insumo do process mining (cases, atividades, timestamps, atores) |
-| Process mining | `src/mining.py` → `reports/mining.json` | lead time P50/P90, retrabalho, variantes, gargalo, throughput |
-| Modelo AS-IS em BPMN 2.0 | `bpmn/as_is.bpmn` | linguagem que a área de processos entende |
-| Modelo TO-BE em BPMN 2.0 | `bpmn/to_be.bpmn` | onde a automação entra e o que permanece humano |
-| Simulação de impacto | `src/impact.py` → `reports/impact.json` | horas economizadas estimadas, com fórmula explícita |
-| API de automação | `src/automation_service.py` + `api/openapi.yaml` | contrato HTTP que o low-code consome |
-| Fluxo n8n importável | `flows/n8n_process_automation.json` | orquestração sem código do fluxo |
-| Receita Power Automate | `flows/power_automate_recipe.md` | HTTP + Parse JSON + Excel/SharePoint/Teams |
-| Requisitos | `docs/requirements.md` | funcionais e não funcionais, rastreáveis |
-| Relatório executivo | `dashboard/process_report.html` | painel auto-contido (AS-IS vs TO-BE) |
+| Log de eventos + documentos sintéticos | `data/event_log.csv`, `data/documents.csv` | insumo da descoberta e da medição |
+| Descoberta (DFG) + conformance | `src/mining.py` → `reports/mining.json`, `reports/dfg.json` | o que o log mostra, com fitness e desvios |
+| AS-IS em BPMN 2.0 **derivado do log** | `bpmn/as_is.bpmn` | abre em bpmn.io/Camunda (tem diagrama) |
+| TO-BE em BPMN 2.0 (desenhado) | `bpmn/to_be.bpmn` | onde a automação entra; aprovação segue humana |
+| Impacto com residual medido | `src/impact.py` → `reports/impact.json` | ganho + faixa de sensibilidade ±20% |
+| API de validação | `src/automation_service.py` (`make openapi` gera o spec) | contrato HTTP que o low-code consome |
+| Fluxo n8n importável | `flows/n8n_process_automation.json` | retry 3x, DLQ, alerta no Teams, resposta 502 |
+| Receita Power Automate | `flows/power_automate_recipe.md` | HTTP + Parse JSON + Excel/Teams + escopo de erro |
+| Requisitos | `docs/requirements.md` | funcionais e não funcionais, rastreáveis a teste |
+| Relatório executivo | `dashboard/process_report.html` | DFG, variantes, desvios e sensibilidade |
+| Revisão de qualidade | `QUALITY_REVIEW.md` | os achados da auditoria e os cortes deliberados |
 
-## Quickstart
+## Como verificar
 
 ```bash
-make all        # gera log → minera → BPMN → impacto → relatório
-make test       # unittest (stdlib, sem dependências)
-make api        # serviço FastAPI (requer fastapi/uvicorn)
+make all      # dados -> mineração -> BPMN -> impacto -> relatório
+make test     # 57 testes unittest (núcleo é só stdlib; testes de API pulam sem fastapi)
+make repro    # roda o pipeline 2x e compara SHA-256 dos 8 artefatos
+make openapi  # spec OpenAPI gerado do FastAPI (fonte única, não escrito à mão)
 ```
 
-## Fluxo medido (AS-IS, do log sintético)
+## Descoberta e conformidade (o miolo)
 
-1. Recebimento do documento → 2. Triagem → 3. Conferência manual → 4. Correção (retrabalho, quando há divergência)
-→ 5. Aprovação → 6. Lançamento. O gargalo e a taxa de retrabalho saem de `reports/mining.json`.
+`src/mining.py` monta o **DFG**: nós = atividades observadas, arestas = relações directly-follows com
+contagem/casos/probabilidade, filtradas por suporte mínimo (≥3 casos e ≥5%) para cortar ruído de exceção.
+O AS-IS é construído a partir desse grafo — inclusive o `exclusiveGateway`, que só aparece onde o log
+mostra mais de uma saída. Conformance é DFG-based: cobertura de arestas log↔modelo e *trace fitness*
+(fração de casos cujo caminho é válido no modelo).
 
-## TO-BE proposto
+Custo disso, dito com clareza: DFG não expressa concorrência com precisão e descarta arestas raras de
+propósito. Alinhamento ótimo exigiria rede de Petri + minerador indutivo — não é o escopo aqui.
 
-- **Extração automática** (substitui a leitura manual na triagem e na conferência de campos).
-- **Validação por regras** (divergência de valor/data/identificador) — decide se vai para conferência humana.
-- **Conferência humana** permanece como etapa de exceção (aprovação continua humana).
-- **Lançamento automatizado** por API/planilha.
+## Impacto sem número mágico
 
-## Decisões e trade-offs
+Cada residual vem de um artefato do lab: extração = fração de identificador inválido; validação =
+fração que ainda precisa de humano (`needs_human_review` sobre os documentos); lançamento = fração de
+casos com divergência no log. Mudar o insumo muda o número — há teste que prova isso.
 
-- **Process mining antes de automatizar**: sem medir, não há como priorizar o que automatizar.
-- **BPMN como contrato** entre TI e área de negócio (mesmo vocabulário do AS-IS/TO-BE).
-- **API + low-code em vez de só script**: o processo fica operável por quem não programa.
-- **Simulação explícita** em vez de métrica inventada: a fórmula está em `src/impact.py`.
+## Simplificações deliberadas
+
+| Decisão | Motivo |
+|---|---|
+| Núcleo em **stdlib** (zero dependências de runtime) | roda em qualquer Python 3.11+ sem instalar nada; dependências só nos extras `.api` |
+| Sem `Dockerfile` aqui | o repo `deploy-observability-lab` é o dono de empacotamento/deploy |
+| Sem lint/tipos/cobertura/pip-audit no CI | auditar dependência inexistente é cerimônia; o gate real é teste + reprodutibilidade |
+| `api/openapi.yaml` deletado | o FastAPI gera o spec: uma fonte de verdade, não duas |
+| Sem tracing OTel, sem kustomize, sem teste de carga | YAGNI; entram quando houver número/pergunta que justifique |
 
 ## Limitações honestas
 
-- Log, documentos e regras são sintéticos; não há operação real de cliente.
-- Os ganhos são **estimativas** derivadas das durações medidas no log sintético.
-- A receita Power Automate é documentada (sem tenant); a automação executável aqui é o serviço + n8n.
-- Não há claims de produção corporativa, SLA ou volume real.
+- Log, documentos e regras são sintéticos; não há operação real de cliente nem ganho comprovado em produção.
+- A receita Power Automate é desenho documentado, **não executado em tenant** (sem licença/ambiente aqui).
+- A API é de demonstração: sem autenticação, rate limit ou auditoria.
+- Descoberta por DFG, não alinhamento ótimo; exceção de 1 caso não entra no modelo.

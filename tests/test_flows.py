@@ -1,19 +1,17 @@
 """Valida os artefatos low-code (n8n importável + receita Power Automate)."""
 import json
 import os
-import re
+import pathlib
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-N8N = os.path.join(ROOT, "flows/n8n_process_automation.json")
-PA = os.path.join(ROOT, "flows/power_automate_recipe.md")
-OPENAPI = os.path.join(ROOT, "api/openapi.yaml")
+N8N = pathlib.Path(ROOT) / "flows" / "n8n_process_automation.json"
+PA = pathlib.Path(ROOT) / "flows" / "power_automate_recipe.md"
 
 
 class TestFlows(unittest.TestCase):
     def setUp(self):
-        with open(N8N, encoding="utf-8") as fh:
-            self.wf = json.load(fh)
+        self.wf = json.loads(N8N.read_text(encoding="utf-8"))
 
     def test_n8n_importable_shape(self):
         self.assertIn("nodes", self.wf)
@@ -40,21 +38,46 @@ class TestFlows(unittest.TestCase):
         types = [n["type"] for n in self.wf["nodes"]]
         for required in ("n8n-nodes-base.webhook", "n8n-nodes-base.httpRequest", "n8n-nodes-base.if"):
             self.assertIn(required, types)
-        urls = json.dumps(self.wf)
-        self.assertIn("/automate/validate", urls, "o fluxo precisa chamar a API do lab")
+        self.assertIn("/automate/validate", json.dumps(self.wf), "o fluxo precisa chamar a API deste repo")
+
+    def test_flow_handles_failure(self):
+        """Fluxo sem retry/DLQ é brinquedo: falha de integração precisa ter caminho próprio."""
+        http_nodes = [n for n in self.wf["nodes"] if n["type"].endswith("httpRequest")]
+        self.assertTrue(http_nodes)
+        self.assertTrue(any(n.get("retryOnFail") for n in http_nodes), "chamada HTTP precisa de retry")
+        self.assertTrue(any(n.get("onError") for n in http_nodes), "erro precisa de política explícita")
+        error_targets = {
+            link["node"]
+            for source, outputs in self.wf["connections"].items()
+            if "erro" in source.lower()
+            for branch in outputs.get("main", [])
+            for link in branch
+        }
+        self.assertTrue(error_targets, "o caminho de erro precisa terminar em alerta/registro")
+
+    def test_flow_has_no_credential_placeholder(self):
+        raw = json.dumps(self.wf)
+        for forbidden in ("SEU_TOKEN", "CHANGE_ME", "TODO", "password"):
+            self.assertNotIn(forbidden, raw)
 
     def test_power_automate_recipe_documents_the_contract(self):
-        with open(PA, encoding="utf-8") as fh:
-            text = fh.read()
-        for expected in ("Parse JSON", "HTTP", "Apply to each", "Excel", "needs_human_review", "Limitações"):
+        text = PA.read_text(encoding="utf-8")
+        for expected in ("Parse JSON", "HTTP", "Aplicar a cada", "Excel", "needs_human_review", "Limitações"):
             self.assertIn(expected, text)
-        self.assertIn("sem tenant", text.lower())
+        self.assertIn("sem licença", text.lower())
+        self.assertIn("executar após", text.lower(), "receita precisa documentar o tratamento de erro")
 
-    def test_openapi_matches_service_routes(self):
-        with open(OPENAPI, encoding="utf-8") as fh:
-            spec = fh.read()
+    def test_service_app_exposes_documented_routes(self):
+        """Fonte única: as rotas vêm do FastAPI, não de um YAML mantido à mão."""
+        try:
+            from fastapi.testclient import TestClient  # noqa: PLC0415
+            from src.automation_service import app  # noqa: PLC0415
+        except Exception:
+            self.skipTest("fastapi não instalado (extras .api)")
+        documented = set(app.openapi()["paths"])
         for route in ("/automate/validate", "/automate/batch", "/process/kpis", "/healthz"):
-            self.assertIn(route, spec)
+            self.assertIn(route, documented)
+        self.assertEqual(TestClient(app).get("/healthz").status_code, 200)
 
 
 if __name__ == "__main__":

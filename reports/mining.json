@@ -25,15 +25,24 @@
     "top": [
       {
         "path": "recebimento -> triagem -> conferencia_manual -> aprovacao -> lancamento",
-        "cases": 148
+        "cases": 148,
+        "share": 0.6727
       },
       {
         "path": "recebimento -> triagem -> conferencia_manual -> correcao -> conferencia_manual -> aprovacao -> lancamento",
-        "cases": 72
+        "cases": 72,
+        "share": 0.3273
       }
     ]
   },
-  "conformance_rate": 0.6727,
+  "conformance": {
+    "fitness_log_to_model": 1.0,
+    "model_edge_coverage": 1.0,
+    "trace_fitness": 1.0,
+    "deviating_cases": 0,
+    "deviating_examples": [],
+    "method": "DFG-based (cobertura de arestas + caminho válido). Não é alinhamento ótimo."
+  },
   "bottleneck_activity": "conferencia_manual",
   "per_activity": {
     "aprovacao": {
@@ -81,5 +90,77 @@
   },
   "manual_minutes": 22005,
   "automated_minutes": 0,
-  "generated_from": "synthetic event log (seed 42)"
+  "discovered_model": {
+    "nodes": [
+      "aprovacao",
+      "conferencia_manual",
+      "correcao",
+      "lancamento",
+      "recebimento",
+      "triagem"
+    ],
+    "start_activities": [
+      {
+        "activity": "recebimento",
+        "count": 220,
+        "probability": 1.0
+      }
+    ],
+    "end_activities": [
+      {
+        "activity": "lancamento",
+        "count": 220,
+        "probability": 1.0
+      }
+    ]
+  },
+  "discovered_model_edges": [
+    {
+      "source": "aprovacao",
+      "target": "lancamento",
+      "count": 220,
+      "cases": 220,
+      "probability": 0.2148
+    },
+    {
+      "source": "conferencia_manual",
+      "target": "aprovacao",
+      "count": 220,
+      "cases": 220,
+      "probability": 0.2148
+    },
+    {
+      "source": "recebimento",
+      "target": "triagem",
+      "count": 220,
+      "cases": 220,
+      "probability": 0.2148
+    },
+    {
+      "source": "triagem",
+      "target": "conferencia_manual",
+      "count": 220,
+      "cases": 220,
+      "probability": 0.2148
+    },
+    {
+      "source": "conferencia_manual",
+      "target": "correcao",
+      "count": 72,
+      "cases": 72,
+      "probability": 0.0703
+    },
+    {
+      "source": "correcao",
+      "target": "conferencia_manual",
+      "count": 72,
+      "cases": 72,
+      "probability": 0.0703
+    }
+  ],
+  "discovery_filter": {
+    "min_support_cases": 3,
+    "min_probability": 0.05
+  },
+  "generated_from": "synthetic event log (deterministic seed)"
 }

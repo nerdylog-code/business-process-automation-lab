@@ -1,6 +1,6 @@
 PY ?= python3
 
-.PHONY: all data mining bpmn impact report test api clean
+.PHONY: all data mining bpmn impact report test openapi repro api clean
 
 all: data mining bpmn impact report
 

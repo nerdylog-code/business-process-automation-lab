@@ -1,25 +1,46 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Automação de processos — relatório executivo</title>
-<style>body{font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:28px}
-h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:26px 0 8px;color:#93c5fd}
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Automação de processos — relatório executivo</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:28px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:26px 0 8px;color:#93c5fd}
 .sub{color:#94a3b8;font-size:13px;margin-bottom:18px}
-.kpis{display:flex;gap:12px;flex-wrap:wrap}.kpi{background:#111c33;border:1px solid #22304d;border-radius:12px;padding:12px 16px;min-width:170px}
-.kpi b{display:block;font-size:22px;color:#f8fafc}.kpi span{font-size:12px;color:#94a3b8}
-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #22304d}
-th{color:#94a3b8;font-weight:600}.note{font-size:12px;color:#fbbf24;margin-top:10px}</style></head><body>
-<h1>Conferência documental — AS-IS vs TO-BE</h1>
-<div class="sub">Log sintético determinístico (seed 42) · 220 casos · 1244 eventos · gerado pelo Business Process Automation Lab</div>
+.kpis{display:flex;gap:12px;flex-wrap:wrap}
+.kpi{background:#111c33;border:1px solid #22304d;border-radius:12px;padding:12px 16px;min-width:168px}
+.kpi b{display:block;font-size:21px;color:#f8fafc}.kpi span{font-size:12px;color:#94a3b8}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #22304d}th{color:#94a3b8;font-weight:600}
+pre.mermaid{background:#111c33;border:1px solid #22304d;border-radius:10px;padding:12px;font-size:11px;overflow:auto}
+.note{font-size:12px;color:#fbbf24;margin-top:12px}
+.tag{font-size:11px;color:#0f172a;background:#38bdf8;border-radius:6px;padding:1px 6px;margin-left:6px}</style></head><body>
+<h1>Conferência documental — AS-IS descoberto vs TO-BE proposto</h1>
+<div class="sub">220 casos · 1244 eventos · log sintético determinístico ·
+ modelo AS-IS <b>descoberto por directly-follows</b> (não hardcoded) · fitness 100%</div>
 <div class="kpis">
 <div class="kpi"><b>2.4 h</b><span>lead time P50</span></div>
 <div class="kpi"><b>3.9 h</b><span>lead time P90</span></div>
 <div class="kpi"><b>33%</b><span>casos com retrabalho</span></div>
-<div class="kpi"><b>67%</b><span>conformidade com o fluxo esperado</span></div>
+<div class="kpi"><b>100%</b><span>trace fitness (DFG)</span></div>
+<div class="kpi"><b>2</b><span>variantes observadas</span></div>
 <div class="kpi"><b>conferencia_manual</b><span>gargalo (maior espera)</span></div>
-<div class="kpi"><b>167.6 h</b><span>economia simulada / mês</span></div>
-<div class="kpi"><b>21.0</b><span>dias úteis / mês (simulado)</span></div>
+<div class="kpi"><b>202.1 h</b><span>economia medida/mês</span></div>
+<div class="kpi"><b>164.6 h</b><span>manual depois (de 366.8 h)</span></div>
 </div>
+<h2>Processo descoberto (DFG — arestas = nº de casos)</h2>
+<pre class="mermaid">flowchart LR
+    aprovacao[&quot;aprovacao&quot;] --&gt;|220| lancamento[&quot;lancamento&quot;]
+    conferencia_manual[&quot;conferencia_manual&quot;] --&gt;|220| aprovacao[&quot;aprovacao&quot;]
+    recebimento[&quot;recebimento&quot;] --&gt;|220| triagem[&quot;triagem&quot;]
+    triagem[&quot;triagem&quot;] --&gt;|220| conferencia_manual[&quot;conferencia_manual&quot;]
+    conferencia_manual[&quot;conferencia_manual&quot;] --&gt;|72| correcao[&quot;correcao&quot;]
+    correcao[&quot;correcao&quot;] --&gt;|72| conferencia_manual[&quot;conferencia_manual&quot;]</pre>
 <h2>Espera média por atividade (AS-IS)</h2>
-<table><tr><th>atividade</th><th>eventos</th><th>duração média</th><th>espera média</th></tr><tr><td>conferencia_manual</td><td>292</td><td>40.12 min</td><td>23.99 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:100%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>correcao</td><td>72</td><td>23.69 min</td><td>13.68 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:57%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>lancamento</td><td>220</td><td>13.1 min</td><td>7.71 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:32%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>triagem</td><td>220</td><td>11.73 min</td><td>6.12 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:26%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>aprovacao</td><td>220</td><td>8.63 min</td><td>4.66 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:19%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>recebimento</td><td>220</td><td>5.56 min</td><td>3.2 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:13%;height:100%;background:#38bdf8'></div></div></td></tr></table>
-<h2>Automações propostas no TO-BE</h2>
-<table><tr><th>automação</th><th>substitui</th><th>base medida</th><th>residual manual</th><th>ganho simulado</th></tr><tr><td>extracao_automatica</td><td>triagem</td><td>2580 min</td><td>15%</td><td>36.5 h/mês</td></tr><tr><td>validacao_por_regras</td><td>conferencia_manual</td><td>11715 min</td><td>55%</td><td>87.9 h/mês</td></tr><tr><td>lancamento_automatico</td><td>lancamento</td><td>2882 min</td><td>10%</td><td>43.2 h/mês</td></tr></table>
-<div class="note">Todos os números vêm de um log <b>sintético</b>. A economia é uma <b>simulação</b> (horas_economizadas = soma(minutos_das_atividades_cobertas)/60 * (1 - fator_residual) * (casos_por_mes / casos_no_log)), não um resultado corporativo medido.</div>
+<table><tr><th>atividade</th><th>eventos</th><th>duração média</th><th>espera média</th></tr><tr><td>conferencia_manual</td><td>292</td><td>40.12 min</td><td>23.99 min <div style='background:#1e293b;border-radius:6px;height:10px;width:150px;display:inline-block;overflow:hidden;vertical-align:middle'><div style='width:100%;height:100%;background:#f97316'></div></div></td></tr><tr><td>correcao</td><td>72</td><td>23.69 min</td><td>13.68 min <div style='background:#1e293b;border-radius:6px;height:10px;width:150px;display:inline-block;overflow:hidden;vertical-align:middle'><div style='width:57%;height:100%;background:#f97316'></div></div></td></tr><tr><td>lancamento</td><td>220</td><td>13.1 min</td><td>7.71 min <div style='background:#1e293b;border-radius:6px;height:10px;width:150px;display:inline-block;overflow:hidden;vertical-align:middle'><div style='width:32%;height:100%;background:#f97316'></div></div></td></tr><tr><td>triagem</td><td>220</td><td>11.73 min</td><td>6.12 min <div style='background:#1e293b;border-radius:6px;height:10px;width:150px;display:inline-block;overflow:hidden;vertical-align:middle'><div style='width:26%;height:100%;background:#f97316'></div></div></td></tr><tr><td>aprovacao</td><td>220</td><td>8.63 min</td><td>4.66 min <div style='background:#1e293b;border-radius:6px;height:10px;width:150px;display:inline-block;overflow:hidden;vertical-align:middle'><div style='width:19%;height:100%;background:#f97316'></div></div></td></tr><tr><td>recebimento</td><td>220</td><td>5.56 min</td><td>3.2 min <div style='background:#1e293b;border-radius:6px;height:10px;width:150px;display:inline-block;overflow:hidden;vertical-align:middle'><div style='width:13%;height:100%;background:#f97316'></div></div></td></tr></table>
+<h2>Variantes do processo</h2>
+<table><tr><th>trajetória</th><th>casos</th><th>share</th></tr><tr><td>recebimento -&gt; triagem -&gt; conferencia_manual -&gt; aprovacao -&gt; lancamento</td><td>148</td><td>67%</td></tr><tr><td>recebimento -&gt; triagem -&gt; conferencia_manual -&gt; correcao -&gt; conferencia_manual -&gt; aprovacao -&gt; lancamento</td><td>72</td><td>33%</td></tr></table>
+<h2>Desvios de conformidade (exemplos)</h2>
+<table><tr><th>caso</th><th>arestas não observadas no modelo</th></tr></table>
+<h2>Automações do TO-BE — residual medido e sensibilidade</h2>
+<table><tr><th>automação</th><th>substitui</th><th>base medida</th><th>residual (medido no lab)</th><th>ganho/mês</th></tr><tr><td>extracao_automatica</td><td>triagem</td><td>2580 min</td><td>10% <span style='color:#94a3b8'>(invalid_identifier_share)</span></td><td><b>38.5 h</b> <span style='color:#94a3b8'>(39.4–37.6)</span></td></tr><tr><td>validacao_por_regras</td><td>conferencia_manual</td><td>11715 min</td><td>33% <span style='color:#94a3b8'>(human_review_share)</span></td><td><b>131.3 h</b> <span style='color:#94a3b8'>(144.1–118.6)</span></td></tr><tr><td>lancamento_automatico</td><td>lancamento</td><td>2882 min</td><td>33% <span style='color:#94a3b8'>(divergence_share)</span></td><td><b>32.3 h</b> <span style='color:#94a3b8'>(35.5–29.2)</span></td></tr></table>
+<div class="note"><b>Simulação</b> sobre log sintético determinístico: todo número vem do log de eventos e da engine de regras deste lab.
+O residual não é estimativa: é medido (horas_economizadas = soma(minutos das atividades cobertas)/60 * (1 - residual medido) * (casos_por_mes / casos_no_log)). A faixa mostra ±20% sobre o residual.</div>
 </body></html>

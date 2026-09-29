@@ -16,10 +16,13 @@ class TestPipeline(unittest.TestCase):
             env = dict(os.environ)
             env["PYTHONPATH"] = ROOT
             steps = [
-                [sys.executable, "-m", "src.generate_event_log", "--cases", "40", "--out", os.path.join(tmp, "data/event_log.csv")],
-                [sys.executable, "-m", "src.mining", "--log", os.path.join(tmp, "data/event_log.csv"), "--out", os.path.join(tmp, "reports/mining.json")],
+                [sys.executable, "-m", "src.generate_event_log", "--cases", "40", "--documents-out", os.path.join(tmp, "data/documents.csv"),
+                 "--out", os.path.join(tmp, "data/event_log.csv")],
+                [sys.executable, "-m", "src.mining", "--log", os.path.join(tmp, "data/event_log.csv"), "--dfg-out", os.path.join(tmp, "reports/dfg.json"),
+                 "--out", os.path.join(tmp, "reports/mining.json")],
                 [sys.executable, "-m", "src.bpmn", "--outdir", os.path.join(tmp, "bpmn"), "--mining", os.path.join(tmp, "reports/mining.json")],
-                [sys.executable, "-m", "src.impact", "--log", os.path.join(tmp, "data/event_log.csv"), "--out", os.path.join(tmp, "reports/impact.json")],
+                [sys.executable, "-m", "src.impact", "--log", os.path.join(tmp, "data/event_log.csv"), "--documents", os.path.join(tmp, "data/documents.csv"),
+                 "--out", os.path.join(tmp, "reports/impact.json")],
                 [sys.executable, "-m", "src.report", "--mining", os.path.join(tmp, "reports/mining.json"),
                  "--impact", os.path.join(tmp, "reports/impact.json"), "--out", os.path.join(tmp, "dashboard/process_report.html")],
             ]

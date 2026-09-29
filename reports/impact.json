@@ -4,7 +4,13 @@
     "cases_per_month_assumed": 220,
     "workdays_per_month": 21,
     "hours_per_workday": 8,
-    "note": "simulação sobre log sintético; não é resultado de operação corporativa"
+    "note": "simulação sobre log e documentos sintéticos do próprio lab; não é resultado corporativo"
+  },
+  "residuals_measured": {
+    "invalid_identifier_share": 0.1045,
+    "human_review_share": 0.3273,
+    "divergence_share": 0.3273,
+    "documents_measured": 220
   },
   "automations": [
     {
@@ -13,8 +19,13 @@
         "triagem"
       ],
       "baseline_minutes": 2580,
-      "residual_manual_fraction": 0.15,
-      "hours_saved_per_month": 36.5
+      "residual_source": "invalid_identifier_share",
+      "residual_measured": 0.1045,
+      "hours_saved_per_month": {
+        "optimistic": 39.4,
+        "measured": 38.5,
+        "pessimistic": 37.6
+      }
     },
     {
       "automation": "validacao_por_regras",
@@ -22,8 +33,13 @@
         "conferencia_manual"
       ],
       "baseline_minutes": 11715,
-      "residual_manual_fraction": 0.55,
-      "hours_saved_per_month": 87.9
+      "residual_source": "human_review_share",
+      "residual_measured": 0.3273,
+      "hours_saved_per_month": {
+        "optimistic": 144.1,
+        "measured": 131.3,
+        "pessimistic": 118.6
+      }
     },
     {
       "automation": "lancamento_automatico",
@@ -31,15 +47,23 @@
         "lancamento"
       ],
       "baseline_minutes": 2882,
-      "residual_manual_fraction": 0.1,
-      "hours_saved_per_month": 43.2
+      "residual_source": "divergence_share",
+      "residual_measured": 0.3273,
+      "hours_saved_per_month": {
+        "optimistic": 35.5,
+        "measured": 32.3,
+        "pessimistic": 29.2
+      }
     }
   ],
   "consolidated": {
-    "hours_saved_per_month": 167.6,
-    "workdays_saved_per_month": 21.0,
-    "hours_saved_per_year": 2011.7,
-    "min_minutes_after_automation": 199.1
+    "hours_saved_per_month": 202.1,
+    "hours_saved_per_month_optimistic": 219.0,
+    "hours_saved_per_month_pessimistic": 185.4,
+    "workdays_saved_per_month": 25.3,
+    "hours_saved_per_year": 2425.2,
+    "manual_hours_before": 366.8,
+    "manual_hours_after": 164.6
   },
-  "formula": "horas_economizadas = soma(minutos_das_atividades_cobertas)/60 * (1 - fator_residual) * (casos_por_mes / casos_no_log)"
+  "formula": "horas_economizadas = soma(minutos das atividades cobertas)/60 * (1 - residual medido) * (casos_por_mes / casos_no_log)"
 }

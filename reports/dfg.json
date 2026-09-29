@@ -1,0 +1,68 @@
+{
+  "nodes": [
+    "aprovacao",
+    "conferencia_manual",
+    "correcao",
+    "lancamento",
+    "recebimento",
+    "triagem"
+  ],
+  "edges": [
+    {
+      "source": "aprovacao",
+      "target": "lancamento",
+      "count": 220,
+      "cases": 220,
+      "probability": 0.2148
+    },
+    {
+      "source": "conferencia_manual",
+      "target": "aprovacao",
+      "count": 220,
+      "cases": 220,
+      "probability": 0.2148
+    },
+    {
+      "source": "recebimento",
+      "target": "triagem",
+      "count": 220,
+      "cases": 220,
+      "probability": 0.2148
+    },
+    {
+      "source": "triagem",
+      "target": "conferencia_manual",
+      "count": 220,
+      "cases": 220,
+      "probability": 0.2148
+    },
+    {
+      "source": "conferencia_manual",
+      "target": "correcao",
+      "count": 72,
+      "cases": 72,
+      "probability": 0.0703
+    },
+    {
+      "source": "correcao",
+      "target": "conferencia_manual",
+      "count": 72,
+      "cases": 72,
+      "probability": 0.0703
+    }
+  ],
+  "start_activities": [
+    {
+      "activity": "recebimento",
+      "count": 220,
+      "probability": 1.0
+    }
+  ],
+  "end_activities": [
+    {
+      "activity": "lancamento",
+      "count": 220,
+      "probability": 1.0
+    }
+  ]
+}

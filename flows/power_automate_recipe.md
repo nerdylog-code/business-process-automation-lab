@@ -1,73 +1,81 @@
-# Receita Power Automate (conferência documental)
+# Receita Power Automate (equivalente ao fluxo n8n)
 
-Receita **documentada** (sem tenant) equivalente ao fluxo n8n importável deste repositório.
-Ela conecta o Microsoft 365 ao serviço de automação do lab e mantém a decisão humana como etapa
-obrigatória quando há divergência.
-
-> Limitações: este arquivo é uma receita técnica. **Sem tenant**, não há validação de execução real
-> nem claim de produção corporativa. O contrato HTTP é o mesmo validado por `api/openapi.yaml`.
+Power Automate é o caminho low-code dentro do Microsoft 365 — quando a empresa já tem licença,
+não faz sentido pedir servidor. Esta receita replica o mesmo contrato do fluxo n8n
+(`flows/n8n_process_automation.json`) usando conector nativo, com tratamento de erro explícito.
 
 ## Gatilho
 
-`Quando um novo e-mail chega em uma pasta compartilhada` (Outlook) **ou**
-`Quando um arquivo é criado na pasta do SharePoint` (SharePoint → `Quando um arquivo é criado (apenas propriedades)`).
+**Quando um arquivo é criado na pasta** (SharePoint → `Documentos/Entrada`) **ou**
+**Quando uma solicitação HTTP é recebida** (se o documento chega de outro sistema).
+Use o gatilho de SharePoint quando o processo real é "alguém joga o PDF numa pasta".
 
 ## Passos
 
-1. **Obter o conteúdo do documento** — ação `Obter anexo`/`Obter conteúdo do arquivo` (Outlook/SharePoint).
-2. **HTTP** — `POST https://<host>/automate/validate`
-   - Cabeçalho: `Content-Type: application/json`
-   - Corpo: o JSON do passo 3.
-3. **Parse JSON** — schema do documento (campos que o serviço espera):
+| # | Ação | Configuração | Por quê |
+|---|---|---|---|
+| 1 | Inicializar variável `request_id` | `guid()` | rastrear a execução ponta a ponta |
+| 2 | Obter conteúdo do arquivo | dinâmico do gatilho | — |
+| 3 | **HTTP** → API de regras | `POST {env}/work`, corpo `Parse JSON` abaixo, **Política de repetição: 4 tentativas, intervalo PT10S, exponencial** | rede falha; retry é obrigatório |
+| 4 | **Parse JSON** | schema abaixo | sem schema, o passo seguinte vira adivinhação |
+| 5 | **Condição** `needs_human_review` é igual a `true` | — | bifurcação principal |
+| 6a | *Se sim* → **Adicionar linha** (Excel/SharePoint) na tabela `Exceções` + **Postar mensagem** no Teams com `@mention` do responsável | — | exceção vai para fila com dono |
+| 6b | *Se não* → **Adicionar linha** em `Aprovados` | — | caminho feliz |
+| 7 | **Responder** / **Atualizar status** | 202 em revisão, 200 aprovado | contrato de saída |
+| 8 | **Escopo "Tratar erro"**: configurar *Executar após* = falhou/expirou/ignorado nos passos 3–6 | — | sem isso o erro é silencioso |
+| 9 | Dentro do escopo: **Adicionar linha** na tabela `Erros` (`request_id`, `json`, `mensagem`) + **Postar no Teams** + **Responder 502** | `result('API de regras')` para o corpo do erro | DLQ + alerta + resposta coerente |
+
+## Schema do `Parse JSON` (cole em "Usar payload de exemplo")
 
 ```json
 {
-  "type": "object",
-  "required": ["document_number", "cnpj", "amount", "issued_at", "due_date"],
-  "properties": {
-    "document_number": { "type": "string" },
-    "cnpj": { "type": "string" },
-    "amount": { "type": ["string", "number"] },
-    "expected_amount": { "type": ["string", "number", "null"] },
-    "issued_at": { "type": "string" },
-    "due_date": { "type": "string" }
-  }
+  "document_number": "NF-20231",
+  "amount": 1234.56,
+  "cnpj": "11222333000181",
+  "issued_at": "2026-06-01",
+  "due_date": "2026-06-30",
+  "status": "aprovado_automaticamente",
+  "needs_human_review": false,
+  "divergences": [],
+  "request_id": "ab12cd34"
 }
 ```
 
-4. **Condição** — `needs_human_review` **é igual a** `true`
-   - **Sim** → `Adicionar linha em tabela` (Excel Online/SharePoint, aba `Divergencias`) com
-     `document_number`, `amount`, `divergences`; depois `Postar mensagem no chat ou canal` (Teams)
-     mencionando o responsável pela conferência.
-   - **Não** → `Adicionar linha em tabela` (aba `Aprovados`) e **seguir para o lançamento**.
-5. **Apply to each** — quando o webhook receber lote (`/automate/batch`), itere `results` e registre
-   linha por linha, mantendo `automation_rate` no corpo da notificação.
-6. **Resposta** — `Responder ao Power Apps/aplicativo` ou `Enviar mensagem` com
-   `status`, `divergences` e o link da linha criada.
+## Diferenças honestas vs. o fluxo n8n
 
-## Resposta do serviço (contrato)
+| Aspecto | n8n | Power Automate |
+|---|---|---|
+| Tratamento de erro | saída 2 do nó (`continueErrorOutput`) | escopo com *Executar após* |
+| Custo | self-hosted ou cloud própria | licença M365 já contratada |
+| Limite prático | sem licença por ação | limites de ação/dia por plano |
+| Melhor quando | integração com sistemas fora do M365 | processo vive dentro do M365 |
 
-```json
-{
-  "status": "revisao_humana",
-  "needs_human_review": true,
-  "divergences": [{ "rule": "valor_divergente", "delta": 234.56 }],
-  "normalized": {
-    "amount": 1234.56,
-    "document_number": "NF-10231",
-    "cnpj": "11222333000181",
-    "issued_at": "2026-06-01",
-    "due_date": "2026-06-30"
-  }
-}
-```
+## Processamento em lote (Aplicar a cada)
 
-## Por que isto fecha o ciclo
+Quando a pasta recebe vários documentos, o fluxo roda uma vez por arquivo com **Aplicar a cada**
+(`Apply to each`) sobre a saída do gatilho de pasta:
 
-- A **aprovação continua humana** (`needs_human_review`), então a automação não decide sozinha em exceção.
-- O **registro** (Excel/SharePoint) é o mesmo artefato que a equipe já usava → adoção sem trocar ferramenta.
-- O **Teams** entrega a exceção para quem resolve, em vez de criar fila invisível.
+| # | Ação | Configuração |
+|---|---|---|
+| 1 | Listar arquivos da pasta | `Obter arquivos (somente propriedades)` |
+| 2 | **Aplicar a cada** arquivo | limite de concorrência: 1 (evita estourar limite de ações e mantém rastreio) |
+| 3 | Dentro do laço: `request_id` = `guid()`, chamar a API, ramificar aprovação/exceção | igual aos passos 2–7 acima |
+| 4 | Após o laço: consolidar contagem (aprovados / exceções / erros) e postar resumo no Teams | evidência diária do processo |
 
-## Testes relacionados
+Cuidado real: sem limite de concorrência o fluxo estoura o limite de chamadas do plano e passa a
+falhar em silêncio no fim do lote — por isso o passo 2 fixa concorrência 1 e o escopo de erro
+registra em `Erros`.
 
-`tests/test_flows.py` valida o contrato HTTP, o fluxo n8n importável e a presença destas etapas.
+## Limitações (honesto)
+
+- **Sem tenant**: nenhuma destas ações foi executada em ambiente Microsoft real por este repositório.
+  A receita descreve o desenho e o contrato; a validação executada aqui é a da API (`/automate/validate`).
+- Sem licença Power Automate Premium, os conectores HTTP podem exigir plano e política de DLP.
+- O conector de Excel/SharePoint é mais lento que a API; para volume alto, use Dataverse ou fila.
+- `Parse JSON` exige schema explícito — sem ele o Power Automate trata tudo como string.
+
+## Como testar sem licença
+
+O contrato do passo 3 é o mesmo da API deste repo: `make run` sobe a API em `localhost:8080` e o
+Power Automate pode chamá-la via gateway on-premises ou dev tunnel. O passo 4 usa exatamente o
+schema acima — validado em `tests/test_n8n_flow.py` (mesma forma de payload).
