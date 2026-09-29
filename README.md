@@ -1,5 +1,8 @@
 # Business Process Automation Lab
 
+[![CI](https://github.com/nerdylog-code/business-process-automation-lab/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nerdylog-code/business-process-automation-lab/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/nerdylog-code/business-process-automation-lab)](LICENSE)
+
 Laboratório reprodutível de automação de um processo administrativo/fiscal: parte de um log de eventos
 sintético, **descobre** o processo AS-IS (directly-follows graph), propõe o TO-BE com automação,
 **mede** o impacto com parâmetros tirados dos próprios artefatos e entrega o que uma área de operações usa:
