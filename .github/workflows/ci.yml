@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Núcleo sem dependências (stdlib)
+        run: python -m unittest discover -s tests -v
+      - name: Pipeline completo (make all)
+        run: |
+          python -m src.generate_event_log --cases 120
+          python -m src.mining
+          python -m src.bpmn
+          python -m src.impact
+          python -m src.report
+      - name: Artefatos gerados
+        run: |
+          test -f reports/mining.json
+          test -f bpmn/as_is.bpmn
+          test -f bpmn/to_be.bpmn
+          test -f reports/impact.json
+          test -f dashboard/process_report.html
+      - name: Dependências do serviço + testes da API
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m unittest discover -s tests -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: process-artifacts-${{ matrix.python-version }}
+          path: |
+            reports/*.json
+            bpmn/*.bpmn
+            dashboard/*.html
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build da imagem
+        run: docker build -t process-automation-lab:ci .
+      - name: Smoke test da API no container
+        run: |
+          docker run -d --name lab -p 8080:8080 process-automation-lab:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:8080/healthz >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:8080/healthz | tee /dev/stderr | grep -q '"status":"ok"'
+          curl -fsS -X POST http://localhost:8080/automate/validate \
+            -H 'Content-Type: application/json' \
+            -d '{"document_number":"NF-1","cnpj":"11222333000181","amount":"1.234,56","expected_amount":"1.200,00","issued_at":"2026-06-01","due_date":"2026-06-30"}' \
+            | tee /dev/stderr | grep -q 'revisao_humana'
+          docker rm -f lab

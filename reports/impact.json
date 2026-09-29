@@ -1,0 +1,45 @@
+{
+  "basis": {
+    "cases_in_log": 220,
+    "cases_per_month_assumed": 220,
+    "workdays_per_month": 21,
+    "hours_per_workday": 8,
+    "note": "simulação sobre log sintético; não é resultado de operação corporativa"
+  },
+  "automations": [
+    {
+      "automation": "extracao_automatica",
+      "replaces_activities": [
+        "triagem"
+      ],
+      "baseline_minutes": 2580,
+      "residual_manual_fraction": 0.15,
+      "hours_saved_per_month": 36.5
+    },
+    {
+      "automation": "validacao_por_regras",
+      "replaces_activities": [
+        "conferencia_manual"
+      ],
+      "baseline_minutes": 11715,
+      "residual_manual_fraction": 0.55,
+      "hours_saved_per_month": 87.9
+    },
+    {
+      "automation": "lancamento_automatico",
+      "replaces_activities": [
+        "lancamento"
+      ],
+      "baseline_minutes": 2882,
+      "residual_manual_fraction": 0.1,
+      "hours_saved_per_month": 43.2
+    }
+  ],
+  "consolidated": {
+    "hours_saved_per_month": 167.6,
+    "workdays_saved_per_month": 21.0,
+    "hours_saved_per_year": 2011.7,
+    "min_minutes_after_automation": 199.1
+  },
+  "formula": "horas_economizadas = soma(minutos_das_atividades_cobertas)/60 * (1 - fator_residual) * (casos_por_mes / casos_no_log)"
+}

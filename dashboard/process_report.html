@@ -1,0 +1,25 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Automação de processos — relatório executivo</title>
+<style>body{font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:28px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:26px 0 8px;color:#93c5fd}
+.sub{color:#94a3b8;font-size:13px;margin-bottom:18px}
+.kpis{display:flex;gap:12px;flex-wrap:wrap}.kpi{background:#111c33;border:1px solid #22304d;border-radius:12px;padding:12px 16px;min-width:170px}
+.kpi b{display:block;font-size:22px;color:#f8fafc}.kpi span{font-size:12px;color:#94a3b8}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #22304d}
+th{color:#94a3b8;font-weight:600}.note{font-size:12px;color:#fbbf24;margin-top:10px}</style></head><body>
+<h1>Conferência documental — AS-IS vs TO-BE</h1>
+<div class="sub">Log sintético determinístico (seed 42) · 220 casos · 1244 eventos · gerado pelo Business Process Automation Lab</div>
+<div class="kpis">
+<div class="kpi"><b>2.4 h</b><span>lead time P50</span></div>
+<div class="kpi"><b>3.9 h</b><span>lead time P90</span></div>
+<div class="kpi"><b>33%</b><span>casos com retrabalho</span></div>
+<div class="kpi"><b>67%</b><span>conformidade com o fluxo esperado</span></div>
+<div class="kpi"><b>conferencia_manual</b><span>gargalo (maior espera)</span></div>
+<div class="kpi"><b>167.6 h</b><span>economia simulada / mês</span></div>
+<div class="kpi"><b>21.0</b><span>dias úteis / mês (simulado)</span></div>
+</div>
+<h2>Espera média por atividade (AS-IS)</h2>
+<table><tr><th>atividade</th><th>eventos</th><th>duração média</th><th>espera média</th></tr><tr><td>conferencia_manual</td><td>292</td><td>40.12 min</td><td>23.99 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:100%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>correcao</td><td>72</td><td>23.69 min</td><td>13.68 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:57%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>lancamento</td><td>220</td><td>13.1 min</td><td>7.71 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:32%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>triagem</td><td>220</td><td>11.73 min</td><td>6.12 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:26%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>aprovacao</td><td>220</td><td>8.63 min</td><td>4.66 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:19%;height:100%;background:#38bdf8'></div></div></td></tr><tr><td>recebimento</td><td>220</td><td>5.56 min</td><td>3.2 min <div style='background:#1e293b;border-radius:6px;height:10px;width:160px;display:inline-block;overflow:hidden'><div style='width:13%;height:100%;background:#38bdf8'></div></div></td></tr></table>
+<h2>Automações propostas no TO-BE</h2>
+<table><tr><th>automação</th><th>substitui</th><th>base medida</th><th>residual manual</th><th>ganho simulado</th></tr><tr><td>extracao_automatica</td><td>triagem</td><td>2580 min</td><td>15%</td><td>36.5 h/mês</td></tr><tr><td>validacao_por_regras</td><td>conferencia_manual</td><td>11715 min</td><td>55%</td><td>87.9 h/mês</td></tr><tr><td>lancamento_automatico</td><td>lancamento</td><td>2882 min</td><td>10%</td><td>43.2 h/mês</td></tr></table>
+<div class="note">Todos os números vêm de um log <b>sintético</b>. A economia é uma <b>simulação</b> (horas_economizadas = soma(minutos_das_atividades_cobertas)/60 * (1 - fator_residual) * (casos_por_mes / casos_no_log)), não um resultado corporativo medido.</div>
+</body></html>

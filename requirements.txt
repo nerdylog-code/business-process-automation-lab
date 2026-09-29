@@ -1,0 +1,3 @@
+# núcleo roda só com a stdlib; o serviço HTTP usa FastAPI
+fastapi>=0.110
+uvicorn>=0.27

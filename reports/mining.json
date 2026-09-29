@@ -1,0 +1,85 @@
+{
+  "cases": 220,
+  "events": 1244,
+  "lead_time_minutes": {
+    "mean": 154.83,
+    "p50": 143.5,
+    "p90": 234.0,
+    "max": 311.0
+  },
+  "lead_time_hours_p50": 2.39,
+  "throughput_cases_per_week": {
+    "2026-W24": 26,
+    "2026-W25": 41,
+    "2026-W26": 40,
+    "2026-W27": 24,
+    "2026-W28": 32,
+    "2026-W29": 17
+  },
+  "rework": {
+    "cases_with_rework": 72,
+    "rework_rate": 0.3273
+  },
+  "variants": {
+    "count": 2,
+    "top": [
+      {
+        "path": "recebimento -> triagem -> conferencia_manual -> aprovacao -> lancamento",
+        "cases": 148
+      },
+      {
+        "path": "recebimento -> triagem -> conferencia_manual -> correcao -> conferencia_manual -> aprovacao -> lancamento",
+        "cases": 72
+      }
+    ]
+  },
+  "conformance_rate": 0.6727,
+  "bottleneck_activity": "conferencia_manual",
+  "per_activity": {
+    "aprovacao": {
+      "events": 220,
+      "cases": 220,
+      "avg_duration_minutes": 8.63,
+      "avg_wait_minutes": 4.66,
+      "total_minutes": 1898
+    },
+    "conferencia_manual": {
+      "events": 292,
+      "cases": 220,
+      "avg_duration_minutes": 40.12,
+      "avg_wait_minutes": 23.99,
+      "total_minutes": 11715
+    },
+    "correcao": {
+      "events": 72,
+      "cases": 72,
+      "avg_duration_minutes": 23.69,
+      "avg_wait_minutes": 13.68,
+      "total_minutes": 1706
+    },
+    "lancamento": {
+      "events": 220,
+      "cases": 220,
+      "avg_duration_minutes": 13.1,
+      "avg_wait_minutes": 7.71,
+      "total_minutes": 2882
+    },
+    "recebimento": {
+      "events": 220,
+      "cases": 220,
+      "avg_duration_minutes": 5.56,
+      "avg_wait_minutes": 3.2,
+      "total_minutes": 1224
+    },
+    "triagem": {
+      "events": 220,
+      "cases": 220,
+      "avg_duration_minutes": 11.73,
+      "avg_wait_minutes": 6.12,
+      "total_minutes": 2580
+    }
+  },
+  "manual_minutes": 22005,
+  "automated_minutes": 0,
+  "generated_from": "synthetic event log (seed 42)"
+}

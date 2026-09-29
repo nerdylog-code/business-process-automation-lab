@@ -1,0 +1,214 @@
+{
+  "name": "Conferência documental — validação automática (process automation lab)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "conferencia-documental",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b0f1a2c3-0001-4000-8000-000000000001",
+      "name": "Webhook (documento recebido)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://automation-api:8080/automate/validate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "b0f1a2c3-0002-4000-8000-000000000002",
+      "name": "API — validar por regras",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.needs_human_review }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b0f1a2c3-0003-4000-8000-000000000003",
+      "name": "Precisa de conferência humana?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "PLANILHA_CONFERENCIA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Divergencias",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        }
+      },
+      "id": "b0f1a2c3-0004-4000-8000-000000000004",
+      "name": "Excel/Sheets — fila de exceções",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2,
+      "position": [
+        940,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "PLANILHA_CONFERENCIA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Aprovados",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        }
+      },
+      "id": "b0f1a2c3-0005-4000-8000-000000000005",
+      "name": "Excel/Sheets — aprovados automáticos",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2,
+      "position": [
+        940,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: $json.status, divergences: $json.divergences }) }}",
+        "options": {}
+      },
+      "id": "b0f1a2c3-0006-4000-8000-000000000006",
+      "name": "Responder ao sistema de origem",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (documento recebido)": {
+      "main": [
+        [
+          {
+            "node": "API — validar por regras",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API — validar por regras": {
+      "main": [
+        [
+          {
+            "node": "Precisa de conferência humana?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precisa de conferência humana?": {
+      "main": [
+        [
+          {
+            "node": "Excel/Sheets — fila de exceções",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Excel/Sheets — aprovados automáticos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Excel/Sheets — fila de exceções": {
+      "main": [
+        [
+          {
+            "node": "Responder ao sistema de origem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Excel/Sheets — aprovados automáticos": {
+      "main": [
+        [
+          {
+            "node": "Responder ao sistema de origem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "process-automation-lab"
+  }
+}
