@@ -26,7 +26,7 @@ Achados, o que foi corrigido e o que ficou de fora, sem maquiar.
 |---|---|
 | `tests/test_reproducibility.py` | o mesmo trabalho é feito por `scripts/check_reproducibility.py` (`make repro`) — uma fonte, não duas |
 | `tests/test_n8n_flow.py` | sobreposto a `tests/test_flows.py`; assertions de erro/retry foram para o arquivo que já existia |
-| `Dockerfile` + job de imagem no CI | o repositório `deploy-observability-lab` é o dono de empacotamento/deploy; aqui basta `pip install ".[api]"` |
+| `Dockerfile` + job de imagem no CI | o repositório `deploy-observability-lab` é o dono de empacotamento/deploy; aqui basta `pip install -r requirements.txt` |
 | lint (ruff), tipos (mypy strict), coverage com piso, pip-audit, dependabot, pre-commit, SECURITY.md, CHANGELOG, ADRs | **o núcleo não tem nenhuma dependência de runtime** — auditar dependência inexistente é cerimônia; gates que eu não consigo rodar localmente viram claim não verificado |
 | `deploy/kustomization.yaml` / PDB / NetworkPolicy / tracing OTel / teste de carga | YAGNI para o escopo; quando entra, entra com número que justifique |
 

@@ -22,6 +22,12 @@ report:
 test:
 	$(PY) -m unittest discover -s tests -v
 
+repro:
+	$(PY) scripts/check_reproducibility.py
+
+openapi:
+	$(PY) scripts/export_openapi.py
+
 api:
 	$(PY) -m uvicorn src.automation_service:app --reload --port 8080
 

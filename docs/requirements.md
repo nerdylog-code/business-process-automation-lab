@@ -31,9 +31,9 @@ manual → correção (retrabalho) → aprovação → lançamento. Medido por p
 |---|---|---|
 | RNF-01 | Determinismo (mesma entrada ⇒ mesma saída) | seed fixa em `generate_event_log`, ausência de aleatoriedade fora dela |
 | RNF-02 | Núcleo sem dependências externas | stdlib apenas em `mining/bpmn/impact/rules/report` |
-| RNF-03 | Testes automatizados e CI | `unittest` + GitHub Actions (matriz 3.11/3.12) |
-| RNF-04 | Contrato HTTP versionado | `api/openapi.yaml` |
-| RNF-05 | Portabilidade do serviço | `Dockerfile` + `make api` |
+| RNF-03 | Testes automatizados e CI | `unittest` + GitHub Actions (Python 3.12, único alvo testado) |
+| RNF-04 | Contrato HTTP versionado | spec gerado do app por `make openapi` (`api/openapi.json`), não escrito à mão |
+| RNF-05 | Portabilidade do serviço | núcleo em stdlib e `make api`; empacotamento/deploy é do repositório `deploy-observability-lab`, este aqui não publica imagem |
 | RNF-06 | Sem dados reais | dados sintéticos; nenhuma Informação pessoal/fiscal de terceiros |
 | RNF-07 | Observabilidade mínima no serviço | `/healthz` + KPIs expostos por endpoint |
 | RNF-08 | Rastreabilidade requisito→teste | tabela acima + `make test` |

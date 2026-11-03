@@ -16,7 +16,7 @@ Use o gatilho de SharePoint quando o processo real é "alguém joga o PDF numa p
 |---|---|---|---|
 | 1 | Inicializar variável `request_id` | `guid()` | rastrear a execução ponta a ponta |
 | 2 | Obter conteúdo do arquivo | dinâmico do gatilho | — |
-| 3 | **HTTP** → API de regras | `POST {env}/work`, corpo `Parse JSON` abaixo, **Política de repetição: 4 tentativas, intervalo PT10S, exponencial** | rede falha; retry é obrigatório |
+| 3 | **HTTP** → API de regras | `POST {env}/automate/validate`, corpo `Parse JSON` abaixo, **Política de repetição: 4 tentativas, intervalo PT10S, exponencial** | rede falha; retry é obrigatório |
 | 4 | **Parse JSON** | schema abaixo | sem schema, o passo seguinte vira adivinhação |
 | 5 | **Condição** `needs_human_review` é igual a `true` | — | bifurcação principal |
 | 6a | *Se sim* → **Adicionar linha** (Excel/SharePoint) na tabela `Exceções` + **Postar mensagem** no Teams com `@mention` do responsável | — | exceção vai para fila com dono |
@@ -76,6 +76,6 @@ registra em `Erros`.
 
 ## Como testar sem licença
 
-O contrato do passo 3 é o mesmo da API deste repo: `make run` sobe a API em `localhost:8080` e o
+O contrato do passo 3 é o mesmo da API deste repo: `make api` sobe a API em `localhost:8080` e o
 Power Automate pode chamá-la via gateway on-premises ou dev tunnel. O passo 4 usa exatamente o
-schema acima — validado em `tests/test_n8n_flow.py` (mesma forma de payload).
+schema acima — validado em `tests/test_flows.py` (mesma forma de payload).

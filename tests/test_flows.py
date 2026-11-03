@@ -2,6 +2,7 @@
 import json
 import os
 import pathlib
+import re
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -79,6 +80,36 @@ class TestFlows(unittest.TestCase):
             self.assertIn(route, documented)
         self.assertEqual(TestClient(app).get("/healthz").status_code, 200)
 
+    def test_documented_http_route_exists_in_the_app(self):
+        """A receita Power Automate não pode apontar para rota que não existe.
+
+        Foi exatamente assim que o `/work` (rota de outro projeto) sobreviveu numa
+        revisão anterior: o teste antigo só procurava palavras-chave no markdown.
+        """
+        try:
+            from src.automation_service import app
+        except Exception:  # fastapi ausente: o núcleo continua sem dependência
+            self.skipTest("fastapi não instalado")
+        paths = {route.path for route in app.routes if getattr(route, "path", None)}
+        texto = PA.read_text(encoding="utf-8")
+        citadas = set(re.findall(r"/(?:automate|process)/[a-z]+", texto))
+        self.assertTrue(citadas, "a receita deveria citar ao menos uma rota da API")
+        for rota in citadas:
+            self.assertIn(rota, paths, f"a receita cita {rota}, que não existe no app")
+        for proibida in ("/work", "make run", "test_n8n_flow"):
+            self.assertNotIn(proibida, texto, f"referência a {proibida} (de outro projeto) voltou à receita")
+
+    def test_openapi_spec_is_generated_from_the_app(self):
+        spec = pathlib.Path(ROOT) / "api" / "openapi.json"
+        if not spec.exists():
+            self.skipTest("rode `make openapi` para gerar o spec")
+        documentado = json.loads(spec.read_text(encoding="utf-8"))
+        try:
+            from src.automation_service import app
+        except Exception:
+            self.skipTest("fastapi não instalado")
+        self.assertEqual(set(documentado["paths"]), set(app.openapi()["paths"]))
 
 if __name__ == "__main__":
     unittest.main()
+
