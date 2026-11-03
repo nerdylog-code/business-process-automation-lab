@@ -19,9 +19,7 @@ jobs:
       - name: pipeline reprodutível (2 execuções, bytes idênticos)
         run: python scripts/check_reproducibility.py
       - name: spec OpenAPI em dia com o app (alvo `make openapi`)
-        run: |
-          python scripts/export_openapi.py
-          git diff --exit-code -- api/openapi.json             || (echo "::error::rode 'make openapi' e commite api/openapi.json"; exit 1)
+        run: python scripts/check_openapi.py
       - name: artefatos commitados batem com o pipeline
         run: |
           git diff --exit-code -- data reports bpmn dashboard \

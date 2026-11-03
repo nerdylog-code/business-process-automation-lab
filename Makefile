@@ -1,6 +1,6 @@
 PY ?= python3
 
-.PHONY: all data mining bpmn impact report test openapi repro api clean
+.PHONY: all data mining bpmn impact report test openapi check-openapi repro api clean
 
 all: data mining bpmn impact report
 
@@ -27,6 +27,9 @@ repro:
 
 openapi:
 	$(PY) scripts/export_openapi.py
+
+check-openapi:
+	$(PY) scripts/check_openapi.py
 
 api:
 	$(PY) -m uvicorn src.automation_service:app --reload --port 8080
